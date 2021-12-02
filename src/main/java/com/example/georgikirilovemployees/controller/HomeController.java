@@ -39,6 +39,7 @@ public class HomeController {
         }
 
         EmployeeOutView coupleEmployee = filetService.getTopCoupleEmployee(file.getInputStream());
+        System.out.println(coupleEmployee);
         modelAndView.addObject("coupleEmployee", coupleEmployee);
         modelAndView.setViewName("index.html");
         return modelAndView;
