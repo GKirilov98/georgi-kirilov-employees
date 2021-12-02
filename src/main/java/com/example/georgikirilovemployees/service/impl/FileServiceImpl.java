@@ -58,6 +58,7 @@ public class FileServiceImpl implements IFiletService {
             }
         }
 
+        inputStream.close();
         EmployeeModel[] emplArray = new EmployeeModel[employeeModels.size()];
         employeeModels.toArray(emplArray);
         //Bubble sort
