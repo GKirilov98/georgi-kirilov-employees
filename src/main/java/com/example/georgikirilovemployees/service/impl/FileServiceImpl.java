@@ -99,7 +99,7 @@ public class FileServiceImpl implements IFiletService {
             minDateTo = emp2.getDateTo();
         }
 
-        return (int) DAYS.between(maxDateFrom, minDateTo);
+        return (int) DAYS.between(maxDateFrom, minDateTo) + 1;
     }
 
 
