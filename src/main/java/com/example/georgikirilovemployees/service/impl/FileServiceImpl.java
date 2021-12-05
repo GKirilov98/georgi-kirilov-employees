@@ -5,11 +5,12 @@ import com.example.georgikirilovemployees.service.IFiletService;
 import com.example.georgikirilovemployees.view.EmployeeOutView;
 import org.springframework.stereotype.Service;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static java.time.temporal.ChronoUnit.DAYS;
 
@@ -20,66 +21,90 @@ import static java.time.temporal.ChronoUnit.DAYS;
  */
 @Service
 public class FileServiceImpl implements IFiletService {
-    public int combinationsLength = 2;
-    public int[] arr = new int[combinationsLength];
-    public List<EmployeeOutView> outViews = new ArrayList<>();
+    private final int combinationsLength = 2;
+    private final int[] arr = new int[combinationsLength];
+    private final List<EmployeeOutView> outViews = new ArrayList<>();
+    private final Map<String, Integer> couplesPkIdTotalWorkDays = new HashMap<>();
 
     @Override
-    public EmployeeOutView getTopCoupleEmployee(InputStream inputStream) throws IOException {
-        outViews.clear();
+    public List<EmployeeOutView> getTopCoupleEmployee(InputStream inputStream) throws IllegalArgumentException {
+        try {
+            outViews.clear();
 
-        List<EmployeeModel> employeeModels = new ArrayList<>();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
-            while (reader.ready()) {
-                String line = reader.readLine();
-                String[] params = line.split(", ");
-                EmployeeModel employee = new EmployeeModel();
-                if (params[0] != null) {
-                    employee.setEmpId(Long.parseLong(params[0]));
+            List<EmployeeModel> employeeModels = new ArrayList<>();
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
+                while (reader.ready()) {
+                    String line = reader.readLine();
+                    if (line.trim().equals("")) {
+                        continue;
+                    }
+
+                    String[] params = line.split(", ");
+                    EmployeeModel employee = new EmployeeModel();
+                    if (params[0] != null) {
+                        employee.setEmpId(Long.parseLong(params[0]));
+                    }
+
+                    if (params[1] != null) {
+                        employee.setProjectId(Long.parseLong(params[1]));
+                    }
+
+                    try {
+                        if (params[2] != null) {
+                            String s = params[2].replaceAll("[ /,.]", "-");
+                            employee.setDateFrom(LocalDate.parse(s));
+                        }
+
+                        if (params[3] != null) {
+                            if (params[3].equals("NULL")) {
+                                employee.setDateTo(LocalDate.now());
+                            } else {
+                                String s = params[3].replaceAll("[ /,.]", "-");
+                                employee.setDateTo(LocalDate.parse(s));
+                            }
+                        }
+                    } catch (Exception e) {
+                        throw new IllegalArgumentException("Error with date format!");
+                    }
+
+
+                    employeeModels.add(employee);
                 }
+            }
 
-                if (params[1] != null) {
-                    employee.setProjectId(Long.parseLong(params[1]));
-                }
-
-                if (params[2] != null) {
-                    employee.setDateFrom(LocalDate.parse(params[2]));
-                }
-
-                if (params[3] != null) {
-                    if (params[3].equals("NULL")) {
-                        employee.setDateTo(LocalDate.now());
-                    } else {
-                        employee.setDateTo(LocalDate.parse(params[3]));
+            inputStream.close();
+            EmployeeModel[] emplArray = new EmployeeModel[employeeModels.size()];
+            employeeModels.toArray(emplArray);
+            //Bubble sort
+            int emlArrayLength = emplArray.length;
+            for (int left = 0; left < emlArrayLength - 1; left++) {
+                for (int right = 0; right < emlArrayLength - left - 1; right++) {
+                    if (emplArray[right].getProjectId() > emplArray[right + 1].getProjectId()) {
+                        EmployeeModel temp = emplArray[right];
+                        emplArray[right] = emplArray[right + 1];
+                        emplArray[right + 1] = temp;
                     }
                 }
-
-                employeeModels.add(employee);
             }
-        }
 
-        inputStream.close();
-        EmployeeModel[] emplArray = new EmployeeModel[employeeModels.size()];
-        employeeModels.toArray(emplArray);
-        //Bubble sort
-        int emlArrayLength = emplArray.length;
-        for (int left = 0; left < emlArrayLength - 1; left++) {
-            for (int right = 0; right < emlArrayLength - left - 1; right++) {
-                if (emplArray[right].getProjectId() > emplArray[right + 1].getProjectId()) {
-                    EmployeeModel temp = emplArray[right];
-                    emplArray[right] = emplArray[right + 1];
-                    emplArray[right + 1] = temp;
+            //combination
+            couples(0, 0, emlArrayLength, emplArray);
+            Set<String> maxPkIds = new HashSet<>();
+            int maxValueInMap=(Collections.max(couplesPkIdTotalWorkDays.values()));
+            for (Map.Entry<String, Integer> entry : couplesPkIdTotalWorkDays.entrySet()) {
+                if (entry.getValue()==maxValueInMap) {
+                    maxPkIds.add(entry.getKey());
                 }
             }
-        }
 
-        //combination
-        couples(0, 0, emlArrayLength, emplArray);
-        //max
-        return outViews
-                .stream()
-                .max(Comparator.comparing(EmployeeOutView::getWorkDays))
-                .orElse(null);
+            return outViews.stream()
+                    .filter(e -> maxPkIds.contains(e.getPkId()))
+                    .collect(Collectors.toList());
+        } catch (IllegalArgumentException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Error while file processing!");
+        }
     }
 
     private int calculateTeamWorkDays(EmployeeModel emp1, EmployeeModel emp2) {
@@ -99,15 +124,27 @@ public class FileServiceImpl implements IFiletService {
             minDateTo = emp2.getDateTo();
         }
 
-        return (int) DAYS.between(maxDateFrom, minDateTo) + 1;
+        return (int) DAYS.between(maxDateFrom, minDateTo);
     }
 
 
     public void couples(int index, int start, int emplArraySize, EmployeeModel[] emplArray) {
         if (index >= combinationsLength) {
-            EmployeeModel emp1 = emplArray[arr[0]];
-            EmployeeModel emp2 = emplArray[arr[1]];
-            if (!emp1.getProjectId().equals(emp2.getProjectId())) {
+            EmployeeModel tempEmpl1 = emplArray[arr[0]];
+            EmployeeModel tempEmpl2 = emplArray[arr[1]];
+            if (!tempEmpl1.getProjectId().equals(tempEmpl2.getProjectId())) {
+                return;
+            }
+
+            EmployeeModel emp1;
+            EmployeeModel emp2;
+            if (tempEmpl1.getEmpId() < tempEmpl2.getEmpId()) {
+                emp1 = tempEmpl1;
+                emp2 = tempEmpl2;
+            } else if (tempEmpl1.getEmpId() > tempEmpl2.getEmpId()) {
+                emp1 = tempEmpl2;
+                emp2 = tempEmpl1;
+            } else {
                 return;
             }
 
@@ -120,6 +157,13 @@ public class FileServiceImpl implements IFiletService {
                 view.setProjectId(emp1.getProjectId());
                 view.setWorkDays(workDays);
                 outViews.add(view);
+                String pkId = emp1.getEmpId() + ";" + emp2.getEmpId();
+                view.setPkId(pkId);
+                if (couplesPkIdTotalWorkDays.containsKey(pkId)) {
+                    couplesPkIdTotalWorkDays.put(pkId, workDays + couplesPkIdTotalWorkDays.get(pkId));
+                } else {
+                    couplesPkIdTotalWorkDays.put(pkId, workDays);
+                }
             }
         } else {
             for (int i = start; i < emplArraySize; i++) {

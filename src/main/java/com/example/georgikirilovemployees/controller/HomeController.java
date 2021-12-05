@@ -11,6 +11,7 @@ import org.springframework.web.servlet.ModelAndView;
 
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
+import java.util.List;
 
 /**
  * Project: georgi-kirilov-employees
@@ -32,14 +33,13 @@ public class HomeController {
     }
 
     @PostMapping("/")
-    public ModelAndView indexConfirm(@RequestParam("file") MultipartFile file, ModelAndView modelAndView) throws IOException {
+    public ModelAndView indexConfirm(@RequestParam("file") MultipartFile file, ModelAndView modelAndView) throws Exception {
         if (file.isEmpty()) {
-            modelAndView.setViewName("redirect:/");
-            return modelAndView;
+           throw new IllegalArgumentException("The file is empty!");
         }
 
-        EmployeeOutView coupleEmployee = filetService.getTopCoupleEmployee(file.getInputStream());
-        System.out.println(coupleEmployee);
+        List<EmployeeOutView> coupleEmployee = filetService.getTopCoupleEmployee(file.getInputStream());
+
         modelAndView.addObject("coupleEmployee", coupleEmployee);
         modelAndView.setViewName("index.html");
         return modelAndView;

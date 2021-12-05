@@ -17,6 +17,7 @@
              <div class="col">
                  <button class="btn btn-info">Submit</button>
              </div>
+            <p class="alert alert-danger mt-2" th:if="${error != null}" th:text="${error}"></p>
         </div>
     </form>
 
@@ -30,11 +31,11 @@
         </tr>
         </thead>
         <tbody>
-        <tr>
-            <td th:text="${coupleEmployee?.empId1}"></td>
-            <td th:text="${coupleEmployee?.empId2}"></td>
-            <td th:text="${coupleEmployee?.projectId}"></td>
-            <td th:text="${coupleEmployee?.workDays}"></td>
+        <tr th:each="ce: ${coupleEmployee}">
+            <td th:text="${ce.empId1}"></td>
+            <td th:text="${ce.empId2}"></td>
+            <td th:text="${ce.projectId}"></td>
+            <td th:text="${ce.workDays}"></td>
         </tr>
         </tbody>
     </table>

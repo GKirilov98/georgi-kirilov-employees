@@ -6,6 +6,7 @@ package com.example.georgikirilovemployees.view;
  * On: 12/2/2021
  */
 public class EmployeeOutView {
+    private String pkId;
     private Long empId1;
     private Long empId2;
     private Long projectId;
@@ -41,6 +42,14 @@ public class EmployeeOutView {
 
     public void setWorkDays(Integer workDays) {
         this.workDays = workDays;
+    }
+
+    public String getPkId() {
+        return pkId;
+    }
+
+    public void setPkId(String pkId) {
+        this.pkId = pkId;
     }
 
     @Override

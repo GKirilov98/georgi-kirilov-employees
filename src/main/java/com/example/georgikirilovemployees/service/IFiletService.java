@@ -4,6 +4,7 @@ import com.example.georgikirilovemployees.view.EmployeeOutView;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 
 /**
  * Project: georgi-kirilov-employees
@@ -13,9 +14,10 @@ import java.io.InputStream;
 public interface IFiletService {
     /**
      * Finds couple with max days work together
+     *
      * @param file - input text file as stream
      * @return - out view
-     * @throws IOException -
+     * @throws IllegalArgumentException -
      */
-    EmployeeOutView getTopCoupleEmployee(InputStream file) throws IOException;
+    List<EmployeeOutView> getTopCoupleEmployee(InputStream file) throws IllegalArgumentException;
 }
